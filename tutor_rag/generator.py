@@ -1,6 +1,6 @@
 import google.generativeai as genai
 
-genai.configure(api_key='gemini_api-key')
+genai.configure(api_key='gemini-api-key')
 
 class Generator:
     def __init__(self):

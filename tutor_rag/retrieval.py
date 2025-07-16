@@ -19,14 +19,16 @@ def clear_list(documents):
 def preprocess(text):
     stop_words = set(stopwords.words('english'))
     words = word_tokenize(text.lower())  # Tokenization
-    words = [word for word in words if word not in stop_words and word.isalpha()]  # Remove stopwords
+    words = [word for word in words if word not in stop_words and word.isalnum()]  # Remove stopwords
     return words
 
 class Retrieval:
     def __init__(self, documents):
         documents = re.split("[.\n]",documents)
         self.documents = clear_list(documents)
-        self.processed_docs = [preprocess(doc) for doc in documents]
+        self.processed_docs = []
+        for doc in documents:
+            self.processed_docs.extend(preprocess(doc))
         self.processed_docs = clear_list(self.processed_docs)
 
         self.model = Word2Vec(self.processed_docs, vector_size=100, window=5, min_count=1, workers=4)
@@ -34,6 +36,9 @@ class Retrieval:
     def ask_query(self, query, n_query):
         query_tokens = preprocess(query)
         query_tokens = clear_list(query_tokens)
+
+        query_tokens.extend(self.processed_docs)
+        print("prepro : ",query_tokens)
 
         for word in query_tokens:
             try:
@@ -53,10 +58,13 @@ class Retrieval:
                 continue
             doc_tokens = clear_list(doc_tokens)
             doc_vector = sum([self.model.wv[word] for word in doc_tokens if word in self.model.wv]) / len(doc_tokens)
-            similarity = cosine_similarity([query_vector], [doc_vector])[0][0]
-            similarities.append((doc, similarity))
+            try:
+                similarity = cosine_similarity([query_vector], [doc_vector])[0][0]
+                similarities.append((doc, similarity))
+            except:
+                print("Unusual error!\nTry something different")
 
         if n_query > len(similarities):
             n_query = len(similarities)-1
 
-        return sorted(similarities, key=lambda x: x[1], reverse=True)[:n_query]
+        return query_tokens

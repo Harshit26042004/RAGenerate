@@ -1,6 +1,6 @@
 from google import genai
 
-client = genai.Client(api_key="AIzaSyDQ6ZmRxJd-qDQWURVarr4jTOHghtiRCf4")
+client = genai.Client(api_key="google API key")
 
 class Generator:
     def __init__(self):

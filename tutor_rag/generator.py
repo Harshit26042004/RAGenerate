@@ -1,23 +1,25 @@
-from google import genai
+import os
+os.environ["GOOGLE_API_KEY"] = "AIzaSyDQ6ZmRxJd-qDQWURVarr4jTOHghtiRCf4"
 
-client = genai.Client(api_key="google API key")
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
 
 class Generator:
     def __init__(self):
-        self.prompt = """Consider You are a Tutor , The user will ask some questions and I will provide a related content to that question."""
-    
-    def smart_mode(self,query,contents):
-        self.mode = f"""You have to generate up to 50 words content smartly that should answer the users need.Just give answer to question. No extra words\nQuestion asked is {query}"""
-        self.info = "".join(content[0] for content in contents)
-        self.response = client.models.generate_content(model="gemini-2.0-flash", contents=self.prompt+self.mode+self.info)
+        self.llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a helpful AI tutor. Use the provided context and chat history to answer the question accurately. If you don't know, say so."),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "Context: {context}\n\nQuestion: {question}")
+        ])
+        self.chain = self.prompt | self.llm | StrOutputParser()
 
-        self.chat = str(self.response.text)
-        return self.chat
-    
-    def turbo_mode(self,query,contents):
-        self.mode = f"""You have to generate up to 250 words content that should answer the users need.Just give detailed answer to question. No extra words\nQuestion asked is {query}"""
-        self.info = "".join(content[0] for content in contents)
-        self.response = client.models.generate_content(model="gemini-2.0-flash", contents=self.prompt+self.mode+self.info)
+    def smart_mode(self, query: str, contents: list, chat_history: list = []) -> str:
+        """Generate response in Smart Mode with provided context and history."""
+        context = "\n\n".join(doc.page_content for doc in contents)  # Changed to page_content
+        return self.chain.invoke({"question": query, "context": context, "chat_history": chat_history})
 
-        self.chat = str(self.response.text)
-        return self.chat
+    def turbo_mode(self, query: str, contents: list, chat_history: list = []) -> str:
+        """Generate response in Turbo Mode (same as Smart Mode for now)."""
+        return self.smart_mode(query, contents, chat_history)

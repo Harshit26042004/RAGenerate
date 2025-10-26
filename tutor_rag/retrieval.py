@@ -1,70 +1,22 @@
-import re
-import nltk
-import gensim
-from gensim.models import Word2Vec
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from sklearn.metrics.pairwise import cosine_similarity
-
-nltk.download('punkt')
-nltk.download('punkt_tab')
-nltk.download('stopwords')
-
-def clear_list(documents):
-  for sent in documents:
-    if len(sent)==0:
-      documents.remove(sent)
-  return documents
-
-def preprocess(text):
-    stop_words = set(stopwords.words('english'))
-    words = word_tokenize(text.lower())  # Tokenization
-    words = [word for word in words if word not in stop_words and word.isalnum()]  # Remove stopwords
-    return words
+from langchain_community.vectorstores import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_core.documents import Document
 
 class Retrieval:
-    def __init__(self, documents):
-        documents = re.split("[.\n]",documents)
-        self.documents = clear_list(documents)
-        self.processed_docs = []
-        for doc in documents:
-            self.processed_docs.extend(preprocess(doc))
-        self.processed_docs = clear_list(self.processed_docs)
+    def __init__(self, document: Document):
+        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+        self.splits = text_splitter.split_documents([document])
+        self.vectorstore = Chroma.from_documents(
+            documents=self.splits,
+            embedding=self.embeddings,
+            persist_directory="./chroma_db"
+        )
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
 
-        self.model = Word2Vec(self.processed_docs, vector_size=100, window=5, min_count=1, workers=4)
-
-    def ask_query(self, query, n_query):
-        query_tokens = preprocess(query)
-        query_tokens = clear_list(query_tokens)
-
-        query_tokens.extend(self.processed_docs)
-        print("prepro : ",query_tokens)
-
-        for word in query_tokens:
-            try:
-                k = self.model.wv[word]
-            except:
-                print("Oops!!\nNo such word found!")
-                continue
-            if word not in self.model.wv:
-                continue
-            
-            query_vector = sum([self.model.wv[word]]) / len(query_tokens)
-
-        similarities = []
-        for doc in self.documents:
-            doc_tokens = preprocess(doc)
-            if len(doc_tokens)==0:
-                continue
-            doc_tokens = clear_list(doc_tokens)
-            doc_vector = sum([self.model.wv[word] for word in doc_tokens if word in self.model.wv]) / len(doc_tokens)
-            try:
-                similarity = cosine_similarity([query_vector], [doc_vector])[0][0]
-                similarities.append((doc, similarity))
-            except:
-                print("Unusual error!\nTry something different")
-
-        if n_query > len(similarities):
-            n_query = len(similarities)-1
-
-        return query_tokens
+    def ask_query(self, query: str, n_query: int) -> list:
+        """Retrieve top-n relevant document chunks for the query."""
+        self.retriever.search_kwargs["k"] = n_query
+        docs = self.retriever.invoke(query)  # Query is embedded and used for similarity search
+        return docs

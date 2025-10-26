@@ -1,5 +1,5 @@
 import os
-os.environ["GOOGLE_API_KEY"] = "AIzaSyDQ6ZmRxJd-qDQWURVarr4jTOHghtiRCf4"
+os.environ["GOOGLE_API_KEY"] = "********YOUR-API-KEY********"
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder

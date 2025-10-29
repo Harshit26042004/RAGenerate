@@ -54,9 +54,9 @@
     pip install -r requirements.txt
     ```
 4.  **Set API Key:**
-    Set your LLM API key as an environment variable (e.g., `OPENAI_API_KEY`, `GEMINI_API_KEY`).
-    ```bash
-    export OPENAI_API_KEY="YOUR_API_KEY_HERE"
+    Set your LLM API key as an environment variable in the ./rag_tutor/generator.py (`GEMINI_API_KEY`).
+    ```python
+    os.environ["GOOGLE_API_KEY"] = "********YOUR-API-KEY********"
     ```
     *(Note: Streamlit deployments often use `st.secrets` for security.)*
 

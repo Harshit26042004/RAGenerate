@@ -58,7 +58,6 @@
     ```python
     os.environ["GOOGLE_API_KEY"] = "********YOUR-API-KEY********"
     ```
-    *(Note: Streamlit deployments often use `st.secrets` for security.)*
 
 5.  **Run the Application:**
     ```bash
